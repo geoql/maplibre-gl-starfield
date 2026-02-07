@@ -1,26 +1,31 @@
-# MapLibre GL Starfield
+# @geoql/maplibre-gl-starfield
 
-[![npm](https://img.shields.io/npm/v/@geoql/maplibre-gl-starfield?logo=npm)](https://www.npmjs.com/package/@geoql/maplibre-gl-starfield)
+Three.js starfield skybox custom layer for [MapLibre GL JS](https://maplibre.org/) globe projections.
+
+[![npm version](https://img.shields.io/npm/v/@geoql/maplibre-gl-starfield.svg)](https://www.npmjs.com/package/@geoql/maplibre-gl-starfield)
 [![JSR](https://jsr.io/badges/@geoql/maplibre-gl-starfield)](https://jsr.io/@geoql/maplibre-gl-starfield)
-[![npm](https://img.shields.io/npm/dm/@geoql/maplibre-gl-starfield?logo=npm)](http://npm-stat.com/charts.html?package=@geoql/maplibre-gl-starfield)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@geoql/maplibre-gl-starfield)](https://bundlephobia.com/package/@geoql/maplibre-gl-starfield)
-[![GitHub contributors](https://img.shields.io/github/contributors/geoql/maplibre-gl-starfield)](https://github.com/geoql/maplibre-gl-starfield/graphs/contributors)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![oxlint](https://img.shields.io/badge/linter-oxlint-7c5dfa?logo=oxc)](https://oxc.rs)
 [![tsdown](https://img.shields.io/badge/bundler-tsdown-3178c6)](https://tsdown.dev/)
 [![typescript](https://img.shields.io/npm/dependency-version/@geoql/maplibre-gl-starfield/dev/typescript?logo=TypeScript)](https://www.typescriptlang.org/)
 
----
+> [**Live Demo**](https://geoql.github.io/maplibre-gl-starfield/)
 
-A MapLibre GL JS custom layer that renders a **Three.js starfield skybox** behind the globe. Supports an optional equirectangular galaxy/milky-way panorama texture with configurable brightness, plus thousands of individual point stars with additive blending.
-
-Perfect for globe-projection maps that need a space-like background — earthquake visualizations, satellite trackers, flight paths, and more.
+Renders an optional equirectangular galaxy/milky-way panorama texture with configurable brightness, plus thousands of individual point stars with additive blending. Perfect for globe-projection maps that need a space-like background — earthquake visualizations, satellite trackers, flight paths, and more.
 
 ## Installation
 
 ```bash
 # npm
 npm install @geoql/maplibre-gl-starfield maplibre-gl three
+
+# pnpm
+pnpm add @geoql/maplibre-gl-starfield maplibre-gl three
+
+# yarn
+yarn add @geoql/maplibre-gl-starfield maplibre-gl three
 
 # bun
 bun add @geoql/maplibre-gl-starfield maplibre-gl three
@@ -45,9 +50,10 @@ const map = new maplibregl.Map({
       satellite: {
         type: 'raster',
         tiles: [
-          'https://s2maps-tiles.eu/wmts?layer=s2cloudless-2021_3857&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileCol={x}&TileRow={y}',
+          'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg',
         ],
         tileSize: 256,
+        attribution: '© EOX IT Services GmbH - S2 Cloudless',
       },
     },
     layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
@@ -70,6 +76,17 @@ map.on('load', () => {
 ```
 
 ## Options
+
+```typescript
+interface MaplibreStarfieldLayerOptions {
+  id?: string;
+  starCount?: number;
+  starSize?: number;
+  starColor?: number;
+  galaxyTextureUrl?: string;
+  galaxyBrightness?: number;
+}
+```
 
 | Option             | Type     | Default       | Description                                                                    |
 | ------------------ | -------- | ------------- | ------------------------------------------------------------------------------ |
@@ -104,11 +121,24 @@ The layer implements MapLibre's `CustomLayerInterface` and shares the WebGL cont
 2. **Point stars** — Thousands of `Points` with per-vertex random size and opacity, rendered with additive blending for a natural glow.
 3. **Camera sync** — The projection matrix is decomposed from MapLibre's model-view-projection matrix, with translation stripped so the skybox stays at infinity regardless of zoom/pan.
 
+## Exports
+
+```typescript
+// Main class
+export { MaplibreStarfieldLayer } from '@geoql/maplibre-gl-starfield';
+
+// Default export (same class)
+export { default } from '@geoql/maplibre-gl-starfield';
+
+// Types
+export type { MaplibreStarfieldLayerOptions } from '@geoql/maplibre-gl-starfield';
+```
+
 ## Requirements
 
-- **Node.js** >= 24.0.0
-- **MapLibre GL JS** >= 3.0.0
-- **Three.js** >= 0.135.0
+- MapLibre GL JS >= 3.0.0
+- Three.js >= 0.135.0
+- Node.js >= 24.0.0
 
 ## Contributing
 
@@ -126,4 +156,4 @@ bun run typecheck
 
 ## License
 
-MIT © [Vinayak Kulkarni](https://vinayakkulkarni.dev)
+[MIT](./LICENSE)
