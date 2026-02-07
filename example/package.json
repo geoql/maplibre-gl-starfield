@@ -1,0 +1,21 @@
+{
+  "name": "@geoql/maplibre-gl-starfield-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@geoql/maplibre-gl-starfield": "file:..",
+    "maplibre-gl": "^5.17.0",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
