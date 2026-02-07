@@ -11,7 +11,7 @@ const map = new maplibregl.Map({
       satellite: {
         type: 'raster',
         tiles: [
-          'https://s2maps-tiles.eu/wmts?layer=s2cloudless-2021_3857&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileCol={x}&TileRow={y}',
+          'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg',
         ],
         tileSize: 256,
         attribution: '© EOX IT Services GmbH - S2 Cloudless',
@@ -26,7 +26,7 @@ const map = new maplibregl.Map({
 
 map.on('load', () => {
   const starfield = new MaplibreStarfieldLayer({
-    galaxyTextureUrl: '/milkyway.jpg',
+    galaxyTextureUrl: import.meta.env.BASE_URL + 'milkyway.jpg',
     galaxyBrightness: 0.35,
     starCount: 4000,
     starSize: 2.0,
