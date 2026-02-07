@@ -1,0 +1,82 @@
+{
+  "name": "@geoql/maplibre-gl-starfield",
+  "version": "0.0.1",
+  "private": false,
+  "description": "A MapLibre GL JS custom layer for rendering a Three.js starfield skybox with galaxy panorama",
+  "keywords": [
+    "galaxy",
+    "globe",
+    "layer",
+    "maplibre",
+    "skybox",
+    "starfield",
+    "stars",
+    "three",
+    "threejs"
+  ],
+  "homepage": "https://github.com/geoql/maplibre-gl-starfield#readme",
+  "bugs": {
+    "url": "https://github.com/geoql/maplibre-gl-starfield/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Vinayak Kulkarni",
+    "email": "inbox.vinayak@gmail.com",
+    "url": "https://vinayakkulkarni.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geoql/maplibre-gl-starfield.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "echo 'test!'",
+    "prepare": "is-ci || husky",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt --write",
+    "typecheck": "tsc --noEmit",
+    "publish:npm": "npm publish --access public",
+    "publish:jsr": "bunx jsr publish"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "@commitlint/types": "^20.3.1",
+    "@types/node": "^25.1.0",
+    "@types/three": "^0.182.0",
+    "husky": "^9.1.7",
+    "is-ci": "^4.1.0",
+    "lint-staged": "^16.2.7",
+    "maplibre-gl": "5.17.0",
+    "oxfmt": "^0.27.0",
+    "oxlint": "^1.42.0",
+    "three": "^0.182.0",
+    "tsdown": "^0.20.1",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "maplibre-gl": ">=3.0.0",
+    "three": ">=0.135.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "bun@1.3.7"
+}
