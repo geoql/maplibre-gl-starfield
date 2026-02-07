@@ -1,0 +1,21 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  color-scheme: light dark;
+  background-color: #000;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+}
+
+canvas {
+  outline: none !important;
+}
+
+#map {
+  width: 100vw;
+  height: 100vh;
+}
