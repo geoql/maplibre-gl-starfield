@@ -1,8 +1,12 @@
 {
   "name": "@geoql/maplibre-gl-starfield",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "exports": "./dist/index.mjs",
   "publish": {
-    "include": ["dist", "README.md", "LICENSE"]
+    "include": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ]
   }
 }
