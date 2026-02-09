@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/geoql/maplibre-gl-starfield/compare/v0.0.2...v0.0.3) (2026-02-09)
+
+
+### Miscellaneous
+
+* bump dependencies ✨ ([e3156bb](https://github.com/geoql/maplibre-gl-starfield/commit/e3156bbef014609dfb0d55697fa200b211baacf1))
+
 ## [0.0.2](https://github.com/geoql/maplibre-gl-starfield/compare/v0.0.1...v0.0.2) (2026-02-08)
 
 
