@@ -38,7 +38,25 @@ type MaplibreStarfieldLayerOptions = {
   galaxyTextureUrl?: string;
   /** Brightness multiplier for the galaxy texture (default: 0.35) */
   galaxyBrightness?: number;
+  /** Enable sun rendering (default: false) */
+  sunEnabled?: boolean;
+  /** Sun azimuth in degrees from north, clockwise. 0=N, 90=E, 180=S, 270=W (default: 180) */
+  sunAzimuth?: number;
+  /** Sun altitude in degrees above horizon. -90 to 90, 0=horizon, 90=zenith (default: 45) */
+  sunAltitude?: number;
+  /** Sun visual disc size in pixels (default: 100) */
+  sunSize?: number;
+  /** Sun color as hex (default: 0xffeeaa) */
+  sunColor?: number;
+  /** Sun glow intensity multiplier (default: 1.5) */
+  sunIntensity?: number;
+  /** Automatically fade stars and galaxy when the sun is above the horizon (default: true) */
+  autoFadeStars?: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Shaders
+// ---------------------------------------------------------------------------
 
 const GALAXY_VERTEX_SHADER = /* glsl */ `
   varying vec2 vUv;
@@ -53,9 +71,10 @@ const GALAXY_VERTEX_SHADER = /* glsl */ `
 const GALAXY_FRAGMENT_SHADER = /* glsl */ `
   uniform sampler2D tSky;
   uniform float uBrightness;
+  uniform float uFade;
   varying vec2 vUv;
   void main() {
-    vec3 col = texture2D(tSky, vUv).rgb * uBrightness;
+    vec3 col = texture2D(tSky, vUv).rgb * uBrightness * uFade;
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -76,30 +95,128 @@ const STAR_VERTEX_SHADER = /* glsl */ `
 
 const STAR_FRAGMENT_SHADER = /* glsl */ `
   uniform vec3  uColor;
+  uniform float uFade;
   varying float vOpacity;
 
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
     if (d > 0.5) discard;
-    float a = vOpacity * smoothstep(0.5, 0.1, d);
+    float a = vOpacity * smoothstep(0.5, 0.1, d) * uFade;
     gl_FragColor = vec4(uColor * a, a);
   }
 `;
+
+const SUN_VERTEX_SHADER = /* glsl */ `
+  uniform float uSunSize;
+
+  void main() {
+    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    clipPos.z = clipPos.w * 0.99998;
+    gl_Position = clipPos;
+    gl_PointSize = uSunSize;
+  }
+`;
+
+const SUN_FRAGMENT_SHADER = /* glsl */ `
+  uniform vec3  uSunColor;
+  uniform float uSunIntensity;
+
+  void main() {
+    vec2 uv = gl_PointCoord - vec2(0.5);
+    float d = length(uv);
+    if (d > 0.5) discard;
+
+    // Multi-layered glow for realistic sun disc
+    float core   = exp(-d * d * 200.0) * 2.5;   // Tiny bright core
+    float inner  = exp(-d * d * 30.0);            // Inner glow
+    float outer  = exp(-d * d * 8.0) * 0.5;       // Soft glow
+    float corona = exp(-d * 1.5) * 0.15;           // Faint corona
+
+    float brightness = (core + inner + outer + corona) * uSunIntensity;
+
+    // Shift towards white at the core
+    vec3 color = mix(uSunColor, vec3(1.0, 1.0, 0.98), clamp(core * 0.5, 0.0, 1.0));
+    gl_FragColor = vec4(color * brightness, clamp(brightness, 0.0, 1.0));
+  }
+`;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const DEG2RAD = Math.PI / 180;
+
+/**
+ * Convert geographic-style azimuth + altitude to a unit-sphere position.
+ *
+ * Azimuth : 0 = north (+Z), 90 = east (+X), 180 = south (-Z), 270 = west (-X)
+ * Altitude: 0 = horizon, +90 = zenith (+Y), -90 = nadir (-Y)
+ */
+function sunDirectionFromAngles(
+  azimuthDeg: number,
+  altitudeDeg: number,
+): [number, number, number] {
+  const az = azimuthDeg * DEG2RAD;
+  const alt = altitudeDeg * DEG2RAD;
+  const cosAlt = Math.cos(alt);
+  return [
+    cosAlt * Math.sin(az), // x  (east)
+    Math.sin(alt), // y  (up)
+    cosAlt * Math.cos(az), // z  (north)
+  ];
+}
+
+/**
+ * Compute how much to fade stars/galaxy based on sun altitude.
+ *
+ * - altitude <= -18 deg  →  1.0  (full night, all stars visible)
+ * - altitude >= 0 deg    →  0.0  (daytime, stars invisible)
+ * - in between           →  smooth non-linear ramp
+ */
+function computeStarFade(altitudeDeg: number): number {
+  if (altitudeDeg >= 0) return 0.0;
+  if (altitudeDeg <= -18) return 1.0;
+  // Non-linear smoothstep for realistic twilight transition
+  const t = -altitudeDeg / 18; // 0..1
+  return t * t * (3 - 2 * t);
+}
+
+// ---------------------------------------------------------------------------
+// Layer class
+// ---------------------------------------------------------------------------
 
 class MaplibreStarfieldLayer implements CustomLayerInterface {
   id: string;
   type: 'custom' = 'custom' as const;
   renderingMode: '2d' | '3d' = '3d';
 
+  // Star / galaxy options
   private starCount: number;
   private starSize: number;
   private starColor: number;
   private galaxyTextureUrl: string | undefined;
   private galaxyBrightness: number;
 
+  // Sun options
+  private _sunEnabled: boolean;
+  private _sunAzimuth: number;
+  private _sunAltitude: number;
+  private _sunSize: number;
+  private _sunColor: number;
+  private _sunIntensity: number;
+  private _autoFadeStars: boolean;
+
+  // Three.js internals
   private renderer: WebGLRenderer | null = null;
   private scene: Scene | null = null;
   private camera: Camera | null = null;
+  private map: MaplibreMap | null = null;
+
+  // References for dynamic updates
+  private starMaterial: ShaderMaterial | null = null;
+  private galaxyMaterial: ShaderMaterial | null = null;
+  private sunMesh: Points | null = null;
+  private sunMaterial: ShaderMaterial | null = null;
 
   constructor(options: MaplibreStarfieldLayerOptions = {}) {
     this.id = options.id ?? 'starfield';
@@ -108,18 +225,98 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     this.starColor = options.starColor ?? 0xffffff;
     this.galaxyTextureUrl = options.galaxyTextureUrl;
     this.galaxyBrightness = options.galaxyBrightness ?? 0.35;
+
+    this._sunEnabled = options.sunEnabled ?? false;
+    this._sunAzimuth = options.sunAzimuth ?? 180;
+    this._sunAltitude = options.sunAltitude ?? 45;
+    this._sunSize = options.sunSize ?? 100;
+    this._sunColor = options.sunColor ?? 0xffeeaa;
+    this._sunIntensity = options.sunIntensity ?? 1.5;
+    this._autoFadeStars = options.autoFadeStars ?? true;
   }
 
+  // -----------------------------------------------------------------------
+  // Public API — dynamic updates
+  // -----------------------------------------------------------------------
+
+  /**
+   * Update the sun position and re-render.
+   *
+   * @param azimuth  Degrees from north, clockwise (0-360)
+   * @param altitude Degrees above horizon (-90 to 90)
+   */
+  setSunPosition(azimuth: number, altitude: number): void {
+    this._sunAzimuth = azimuth;
+    this._sunAltitude = altitude;
+    this.applySunPosition();
+    this.applyStarFade();
+    this.map?.triggerRepaint();
+  }
+
+  /**
+   * Enable or disable the sun.
+   */
+  setSunEnabled(enabled: boolean): void {
+    this._sunEnabled = enabled;
+
+    if (this.sunMesh) {
+      this.sunMesh.visible = enabled;
+    }
+
+    if (!enabled) {
+      // Restore full star brightness when sun is disabled
+      this.setFadeUniforms(1.0);
+    } else {
+      this.applyStarFade();
+    }
+
+    this.map?.triggerRepaint();
+  }
+
+  /**
+   * Update sun glow intensity.
+   */
+  setSunIntensity(intensity: number): void {
+    this._sunIntensity = intensity;
+    if (this.sunMaterial) {
+      this.sunMaterial.uniforms['uSunIntensity'].value = intensity;
+    }
+    this.map?.triggerRepaint();
+  }
+
+  /**
+   * Update the visual disc size of the sun (pixels).
+   */
+  setSunSize(size: number): void {
+    this._sunSize = size;
+    if (this.sunMaterial) {
+      this.sunMaterial.uniforms['uSunSize'].value = size;
+    }
+    this.map?.triggerRepaint();
+  }
+
+  // -----------------------------------------------------------------------
+  // CustomLayerInterface
+  // -----------------------------------------------------------------------
+
   onAdd(map: MaplibreMap, gl: WebGLRenderingContext): void {
+    this.map = map;
     this.scene = new Scene();
     this.camera = new Camera();
 
-    // --- Galaxy skybox sphere (renders first, behind everything) ---
+    const initialFade =
+      this._sunEnabled && this._autoFadeStars
+        ? computeStarFade(this._sunAltitude)
+        : 1.0;
+
+    // --- Galaxy skybox sphere (renders first, behind everything) ---------
     if (this.galaxyTextureUrl) {
       const loader = new TextureLoader();
       loader.setCrossOrigin('anonymous');
       const brightness = this.galaxyBrightness;
       const scene = this.scene;
+      const fade = initialFade;
+      const self = this;
 
       loader.load(this.galaxyTextureUrl, (texture: Texture) => {
         texture.magFilter = LinearFilter;
@@ -130,6 +327,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
           uniforms: {
             tSky: { value: texture },
             uBrightness: { value: brightness },
+            uFade: { value: fade },
           },
           vertexShader: GALAXY_VERTEX_SHADER,
           fragmentShader: GALAXY_FRAGMENT_SHADER,
@@ -138,6 +336,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
           depthTest: false,
         });
 
+        self.galaxyMaterial = skyMat;
         const skybox = new Mesh(skyGeo, skyMat);
         // Insert at index 0 so it renders behind point stars
         scene.children.unshift(skybox);
@@ -145,7 +344,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
       });
     }
 
-    // --- Point stars (bright individual stars on top of galaxy) ---
+    // --- Point stars (bright individual stars on top of galaxy) -----------
     const count = this.starCount;
     const size = this.starSize;
     const color = this.starColor;
@@ -177,6 +376,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     const mat = new ShaderMaterial({
       uniforms: {
         uColor: { value: new Vector3(cr, cg, cb) },
+        uFade: { value: initialFade },
       },
       vertexShader: STAR_VERTEX_SHADER,
       fragmentShader: STAR_FRAGMENT_SHADER,
@@ -189,8 +389,13 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
       blendEquation: AddEquation,
     });
 
+    this.starMaterial = mat;
     this.scene.add(new Points(geo, mat));
 
+    // --- Sun disc (single large glowing point) ---------------------------
+    this.createSun();
+
+    // --- Renderer --------------------------------------------------------
     this.renderer = new WebGLRenderer({
       canvas: map.getCanvas(),
       context: gl,
@@ -248,6 +453,84 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+    this.map = null;
+    this.starMaterial = null;
+    this.galaxyMaterial = null;
+    this.sunMesh = null;
+    this.sunMaterial = null;
+  }
+
+  // -----------------------------------------------------------------------
+  // Private helpers
+  // -----------------------------------------------------------------------
+
+  private createSun(): void {
+    if (!this.scene) return;
+
+    const [x, y, z] = sunDirectionFromAngles(
+      this._sunAzimuth,
+      this._sunAltitude,
+    );
+
+    const sunGeo = new BufferGeometry();
+    sunGeo.setAttribute('position', new Float32BufferAttribute([x, y, z], 3));
+
+    const scR = ((this._sunColor >> 16) & 0xff) / 255;
+    const scG = ((this._sunColor >> 8) & 0xff) / 255;
+    const scB = (this._sunColor & 0xff) / 255;
+
+    const sunMat = new ShaderMaterial({
+      uniforms: {
+        uSunColor: { value: new Vector3(scR, scG, scB) },
+        uSunIntensity: { value: this._sunIntensity },
+        uSunSize: { value: this._sunSize },
+      },
+      vertexShader: SUN_VERTEX_SHADER,
+      fragmentShader: SUN_FRAGMENT_SHADER,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: CustomBlending,
+      blendSrc: OneFactor,
+      blendDst: OneMinusSrcAlphaFactor,
+      blendEquation: AddEquation,
+    });
+
+    this.sunMaterial = sunMat;
+    this.sunMesh = new Points(sunGeo, sunMat);
+    this.sunMesh.visible = this._sunEnabled;
+    this.scene.add(this.sunMesh);
+  }
+
+  private applySunPosition(): void {
+    if (!this.sunMesh) return;
+
+    const [x, y, z] = sunDirectionFromAngles(
+      this._sunAzimuth,
+      this._sunAltitude,
+    );
+
+    const posAttr = this.sunMesh.geometry.getAttribute('position');
+    (posAttr as Float32BufferAttribute).setXYZ(0, x, y, z);
+    posAttr.needsUpdate = true;
+  }
+
+  private applyStarFade(): void {
+    if (!this._sunEnabled || !this._autoFadeStars) {
+      this.setFadeUniforms(1.0);
+      return;
+    }
+    const fade = computeStarFade(this._sunAltitude);
+    this.setFadeUniforms(fade);
+  }
+
+  private setFadeUniforms(fade: number): void {
+    if (this.starMaterial) {
+      this.starMaterial.uniforms['uFade'].value = fade;
+    }
+    if (this.galaxyMaterial) {
+      this.galaxyMaterial.uniforms['uFade'].value = fade;
+    }
   }
 }
 
