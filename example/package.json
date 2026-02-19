@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@geoql/maplibre-gl-starfield": "file:..",
-    "maplibre-gl": "^5.17.0",
-    "three": "^0.182.0"
+    "maplibre-gl": "^5.18.0",
+    "three": "^0.183.0"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.3.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }

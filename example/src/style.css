@@ -1,8 +1,12 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color-scheme: dark;
   background-color: #000;
   overflow: hidden;
 }
@@ -18,4 +22,74 @@ canvas {
 #map {
   width: 100vw;
   height: 100vh;
+}
+
+#controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #e0e0e0;
+  font-size: 13px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#controls h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+#controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#controls input[type='range'] {
+  width: 100%;
+  accent-color: #ffbb33;
+}
+
+#controls input[type='checkbox'] {
+  accent-color: #ffbb33;
+  margin-right: 6px;
+}
+
+.presets {
+  display: flex;
+  gap: 4px;
+}
+
+.presets button {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.presets button:hover {
+  background: rgba(255, 187, 51, 0.2);
+  border-color: rgba(255, 187, 51, 0.4);
+  color: #fff;
+}
+
+.presets button.active {
+  background: rgba(255, 187, 51, 0.25);
+  border-color: #ffbb33;
+  color: #ffbb33;
 }
