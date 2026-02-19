@@ -24,6 +24,15 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three';
+import galaxyVertexShader from './shaders/galaxy.vert.glsl';
+import galaxyFragmentShader from './shaders/galaxy.frag.glsl';
+import starVertexShader from './shaders/star.vert.glsl';
+import starFragmentShader from './shaders/star.frag.glsl';
+import sunVertexShader from './shaders/sun.vert.glsl';
+import sunFragmentShaderRaw from './shaders/sun.frag.glsl';
+import simplexNoiseGlsl from './shaders/includes/simplex-noise.glsl';
+import fbmGlsl from './shaders/includes/fbm.glsl';
+import brightnessToColorGlsl from './shaders/includes/brightness-to-color.glsl';
 
 type MaplibreStarfieldLayerOptions = {
   /** Unique layer ID */
@@ -54,205 +63,28 @@ type MaplibreStarfieldLayerOptions = {
   autoFadeStars?: boolean;
 };
 
-// ---------------------------------------------------------------------------
-// Shaders
-// ---------------------------------------------------------------------------
+const GLSL_INCLUDES: Record<string, string> = {
+  'includes/simplex-noise.glsl': simplexNoiseGlsl,
+  'includes/fbm.glsl': fbmGlsl,
+  'includes/brightness-to-color.glsl': brightnessToColorGlsl,
+};
 
-const GALAXY_VERTEX_SHADER = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    clipPos.z = clipPos.w * 0.99999;
-    gl_Position = clipPos;
-  }
-`;
-
-const GALAXY_FRAGMENT_SHADER = /* glsl */ `
-  uniform sampler2D tSky;
-  uniform float uBrightness;
-  uniform float uFade;
-  varying vec2 vUv;
-  void main() {
-    vec3 col = texture2D(tSky, vUv).rgb * uBrightness * uFade;
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
-
-const STAR_VERTEX_SHADER = /* glsl */ `
-  attribute float aSize;
-  attribute float aOpacity;
-  varying   float vOpacity;
-
-  void main() {
-    vOpacity = aOpacity;
-    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    clipPos.z = clipPos.w * 0.9999;
-    gl_Position  = clipPos;
-    gl_PointSize = aSize;
-  }
-`;
-
-const STAR_FRAGMENT_SHADER = /* glsl */ `
-  uniform vec3  uColor;
-  uniform float uFade;
-  varying float vOpacity;
-
-  void main() {
-    float d = length(gl_PointCoord - vec2(0.5));
-    if (d > 0.5) discard;
-    float a = vOpacity * smoothstep(0.5, 0.1, d) * uFade;
-    gl_FragColor = vec4(uColor * a, a);
-  }
-`;
-
-const SUN_VERTEX_SHADER = /* glsl */ `
-  varying vec3 vDirection;
-
-  void main() {
-    vDirection = position;
-    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    clipPos.z = clipPos.w * 0.99998;
-    gl_Position = clipPos;
-  }
-`;
-
-const SUN_FRAGMENT_SHADER = /* glsl */ `
-  uniform vec3  uSunDirection;
-  uniform vec3  uSunColor;
-  uniform float uSunIntensity;
-  uniform float uSunAngularRadius;
-
-  varying vec3 vDirection;
-
-  vec3 mod289v3(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 mod289v4(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 perm(vec4 x) { return mod289v4(((x * 34.0) + 10.0) * x); }
-  vec4 tis(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-
-  float snoise(vec3 v) {
-    const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
-    vec3 i = floor(v + dot(v, C.yyy));
-    vec3 x0 = v - i + dot(i, C.xxx);
-    vec3 g = step(x0.yzx, x0.xyz);
-    vec3 l = 1.0 - g;
-    vec3 i1 = min(g.xyz, l.zxy);
-    vec3 i2 = max(g.xyz, l.zxy);
-    vec3 x1 = x0 - i1 + C.xxx;
-    vec3 x2 = x0 - i2 + C.yyy;
-    vec3 x3 = x0 - 0.5;
-    i = mod289v3(i);
-    vec4 p = perm(perm(perm(
-        i.z + vec4(0.0, i1.z, i2.z, 1.0))
-      + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-      + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-    vec4 j = p - 49.0 * floor(p / 49.0);
-    vec4 x_ = floor(j / 7.0);
-    vec4 y_ = j - 7.0 * x_;
-    vec4 ox = (x_ * 2.0 + 0.5) / 7.0 - 1.0;
-    vec4 oy = (y_ * 2.0 + 0.5) / 7.0 - 1.0;
-    vec4 h = 1.0 - abs(ox) - abs(oy);
-    vec4 b0 = vec4(ox.xy, oy.xy);
-    vec4 b1 = vec4(ox.zw, oy.zw);
-    vec4 s0 = floor(b0) * 2.0 + 1.0;
-    vec4 s1 = floor(b1) * 2.0 + 1.0;
-    vec4 sh = -step(h, vec4(0.0));
-    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-    vec3 p0 = vec3(a0.xy, h.x);
-    vec3 p1 = vec3(a0.zw, h.y);
-    vec3 p2 = vec3(a1.xy, h.z);
-    vec3 p3 = vec3(a1.zw, h.w);
-    vec4 norm = tis(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
-    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-    vec4 m = max(0.5 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
-    m = m * m;
-    return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
-  }
-
-  float fbm(vec3 p) {
-    float f = 0.5 * snoise(p); p *= 2.02;
-    f += 0.25 * snoise(p); p *= 2.03;
-    f += 0.125 * snoise(p); p *= 2.01;
-    f += 0.0625 * snoise(p);
-    return f / 0.9375;
-  }
-
-  vec3 brightnessToColor(float b) {
-    b *= 0.25;
-    return (vec3(b, b * b, b * b * b * b) / 0.25) * 0.8;
-  }
-
-  void main() {
-    vec3 dir = normalize(vDirection);
-    vec3 sunDir = normalize(uSunDirection);
-    float cosAngle = dot(dir, sunDir);
-    float angularDist = acos(clamp(cosAngle, -1.0, 1.0));
-    float sunRadius = acos(clamp(uSunAngularRadius, -1.0, 1.0));
-    float r = angularDist / max(sunRadius, 0.001);
-
-    if (r > 15.0) discard;
-
-    vec3 upRef = abs(sunDir.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-    vec3 t1 = normalize(cross(sunDir, upRef));
-    vec3 t2 = cross(sunDir, t1);
-    vec3 localDir = vec3(dot(dir, t1), dot(dir, t2), dot(dir, sunDir));
-
-    float discBright = 0.0;
-    float glowBright = 0.0;
-
-    if (r < 1.05) {
-      vec3 nc = localDir * 40.0;
-      vec3 warp = vec3(
-        snoise(nc * 0.7 + vec3(5.2, 0.0, 0.0)),
-        snoise(nc * 0.7 + vec3(0.0, 1.7, 0.0)),
-        0.0
-      );
-      vec3 warped = nc + warp * 4.0;
-
-      float n1 = fbm(warped);
-      float n2 = snoise(warped * 2.5) * 0.5 + 0.5;
-      float n3 = snoise(warped * 6.0) * 0.5 + 0.5;
-      float surface = 0.55 + 0.35 * n1 + 0.07 * n2 + 0.03 * n3;
-
-      float spots = 1.0 - 0.25 * pow(clamp(1.0 - n1, 0.0, 1.0), 3.0);
-      surface *= spots;
-
-      float rim = 1.0 + r * r * 1.2;
-      float edge = 1.0 - smoothstep(0.88, 1.02, r);
-
-      discBright = surface * rim * edge;
-    }
-
-    float c1 = exp(-pow(max(r - 0.95, 0.0) / 0.6, 1.5)) * 0.8;
-    float c2 = exp(-pow(max(r - 0.95, 0.0) / 2.5, 1.3)) * 0.3;
-    float c3 = exp(-max(r - 0.8, 0.0) / 5.0) * 0.1;
-    glowBright = c1 + c2 + c3;
-
-    if (r > 0.85 && r < 12.0) {
-      vec3 projVec = dir - sunDir * cosAngle;
-      float projLen = length(projVec);
-      if (projLen > 0.001) {
-        vec3 proj = projVec / projLen;
-        float angle = atan(dot(proj, t2), dot(proj, t1));
-        float ray = pow(max(snoise(vec3(angle * 3.0, 0.5, 0.0)), 0.0), 2.0);
-        ray += pow(max(snoise(vec3(angle * 7.0, 1.5, 0.0)), 0.0), 3.0) * 0.5;
-        ray += pow(max(snoise(vec3(angle * 13.0, 2.5, 0.0)), 0.0), 4.0) * 0.3;
-        float radialFade = exp(-pow(max(r - 1.0, 0.0) / 4.0, 1.1));
-        glowBright += ray * radialFade * 0.4;
+/** Resolve `#include path` directives in GLSL source (eclipseSimulator pattern). */
+function resolveGlslIncludes(source: string): string {
+  return source.replace(
+    /^#include\s+(.+)$/gm,
+    (_match: string, path: string) => {
+      const trimmed = path.trim();
+      const glsl = GLSL_INCLUDES[trimmed];
+      if (!glsl) {
+        throw new Error(`GLSL include not found: ${trimmed}`);
       }
-    }
+      return glsl;
+    },
+  );
+}
 
-    float totalBright = (discBright + glowBright) * uSunIntensity;
-    if (totalBright < 0.002) discard;
-
-    vec3 discColor = brightnessToColor(discBright * uSunIntensity * 1.5) * uSunColor;
-    vec3 glowColor = brightnessToColor(glowBright * uSunIntensity * 2.5) * uSunColor;
-    vec3 color = discColor + glowColor;
-
-    gl_FragColor = vec4(color, clamp(totalBright, 0.0, 1.0));
-  }
-`;
+const sunFragmentShader = resolveGlslIncludes(sunFragmentShaderRaw);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -436,7 +268,6 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
       const brightness = this.galaxyBrightness;
       const scene = this.scene;
       const fade = initialFade;
-      const self = this;
 
       loader.load(this.galaxyTextureUrl, (texture: Texture) => {
         texture.magFilter = LinearFilter;
@@ -449,16 +280,15 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
             uBrightness: { value: brightness },
             uFade: { value: fade },
           },
-          vertexShader: GALAXY_VERTEX_SHADER,
-          fragmentShader: GALAXY_FRAGMENT_SHADER,
+          vertexShader: galaxyVertexShader,
+          fragmentShader: galaxyFragmentShader,
           side: BackSide,
           depthWrite: false,
           depthTest: false,
         });
 
-        self.galaxyMaterial = skyMat;
+        this.galaxyMaterial = skyMat;
         const skybox = new Mesh(skyGeo, skyMat);
-        // Insert at index 0 so it renders behind point stars
         scene.children.unshift(skybox);
         map.triggerRepaint();
       });
@@ -498,8 +328,8 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
         uColor: { value: new Vector3(cr, cg, cb) },
         uFade: { value: initialFade },
       },
-      vertexShader: STAR_VERTEX_SHADER,
-      fragmentShader: STAR_FRAGMENT_SHADER,
+      vertexShader: starVertexShader,
+      fragmentShader: starFragmentShader,
       transparent: true,
       depthWrite: false,
       depthTest: false,
@@ -605,8 +435,8 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
         uSunIntensity: { value: this._sunIntensity },
         uSunAngularRadius: { value: angularRadiusCos },
       },
-      vertexShader: SUN_VERTEX_SHADER,
-      fragmentShader: SUN_FRAGMENT_SHADER,
+      vertexShader: sunVertexShader,
+      fragmentShader: sunFragmentShader,
       side: BackSide,
       transparent: true,
       depthWrite: false,
