@@ -18,25 +18,25 @@ const PRESETS: Record<string, SunPreset> = {
     azimuth: 90,
     altitude: -6,
     skyColor: '#1a0a2e',
-    atmosphereBlend: 0.85,
+    atmosphereBlend: 0.15,
   },
   day: {
     azimuth: 180,
     altitude: 45,
     skyColor: '#87CEEB',
-    atmosphereBlend: 1,
+    atmosphereBlend: 0.85,
   },
   dusk: {
     azimuth: 270,
     altitude: -3,
     skyColor: '#2d1b4e',
-    atmosphereBlend: 0.85,
+    atmosphereBlend: 0.15,
   },
   night: {
     azimuth: 0,
     altitude: -30,
     skyColor: '#000011',
-    atmosphereBlend: 0.8,
+    atmosphereBlend: 0,
   },
 };
 
@@ -61,7 +61,7 @@ const map = new maplibregl.Map({
     },
     layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
     sky: {
-      'atmosphere-blend': 0.8,
+      'atmosphere-blend': 0,
       'sky-color': '#000011',
     },
   },
