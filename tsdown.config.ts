@@ -8,4 +8,7 @@ export default defineConfig({
   treeshake: true,
   external: ['maplibre-gl', 'three'],
   inlineOnly: false,
+  loader: {
+    '.glsl': 'text',
+  },
 });
