@@ -198,34 +198,36 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
     vec3 t2 = cross(sunDir, t1);
     vec3 localDir = vec3(dot(dir, t1), dot(dir, t2), dot(dir, sunDir));
 
-    float brightness = 0.0;
+    float discBright = 0.0;
+    float glowBright = 0.0;
 
     if (r < 1.05) {
-      vec3 nc = localDir * 200.0;
+      vec3 nc = localDir * 40.0;
       vec3 warp = vec3(
-        fbm(nc + vec3(5.2, 1.3, 0.0)),
-        fbm(nc + vec3(1.7, 9.2, 0.0)),
+        snoise(nc * 0.7 + vec3(5.2, 0.0, 0.0)),
+        snoise(nc * 0.7 + vec3(0.0, 1.7, 0.0)),
         0.0
       );
-      vec3 warped = nc + warp * 30.0;
+      vec3 warped = nc + warp * 4.0;
 
       float n1 = fbm(warped);
-      float n2 = abs(snoise(warped * 3.0));
-      float n3 = abs(snoise(warped * 7.0));
-      float surface = 0.3 + 0.4 * n1 + 0.2 * n2 + 0.1 * n3;
+      float n2 = snoise(warped * 2.5) * 0.5 + 0.5;
+      float n3 = snoise(warped * 6.0) * 0.5 + 0.5;
+      float surface = 0.55 + 0.35 * n1 + 0.07 * n2 + 0.03 * n3;
 
-      float spots = 1.0 - 0.45 * pow(max(1.0 - n1, 0.0), 2.5);
+      float spots = 1.0 - 0.25 * pow(clamp(1.0 - n1, 0.0, 1.0), 3.0);
       surface *= spots;
 
-      float radial = 1.0 - r * 0.15;
-      float rim = 1.0 + pow(max(r - 0.4, 0.0) / 0.6, 2.5) * 1.5;
-      brightness += surface * radial * rim * (1.0 - smoothstep(0.9, 1.02, r));
+      float rim = 1.0 + r * r * 1.2;
+      float edge = 1.0 - smoothstep(0.88, 1.02, r);
+
+      discBright = surface * rim * edge;
     }
 
-    float c1 = exp(-pow(max(r - 0.8, 0.0) / 0.8, 1.6)) * 0.7;
-    float c2 = exp(-pow(max(r - 0.8, 0.0) / 3.0, 1.3)) * 0.25;
-    float c3 = exp(-max(r - 0.5, 0.0) / 6.0) * 0.08;
-    brightness += c1 + c2 + c3;
+    float c1 = exp(-pow(max(r - 0.95, 0.0) / 0.6, 1.5)) * 0.8;
+    float c2 = exp(-pow(max(r - 0.95, 0.0) / 2.5, 1.3)) * 0.3;
+    float c3 = exp(-max(r - 0.8, 0.0) / 5.0) * 0.1;
+    glowBright = c1 + c2 + c3;
 
     if (r > 0.85 && r < 12.0) {
       vec3 projVec = dir - sunDir * cosAngle;
@@ -237,15 +239,18 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
         ray += pow(max(snoise(vec3(angle * 7.0, 1.5, 0.0)), 0.0), 3.0) * 0.5;
         ray += pow(max(snoise(vec3(angle * 13.0, 2.5, 0.0)), 0.0), 4.0) * 0.3;
         float radialFade = exp(-pow(max(r - 1.0, 0.0) / 4.0, 1.1));
-        brightness += ray * radialFade * 0.4;
+        glowBright += ray * radialFade * 0.4;
       }
     }
 
-    brightness *= uSunIntensity;
-    if (brightness < 0.002) discard;
+    float totalBright = (discBright + glowBright) * uSunIntensity;
+    if (totalBright < 0.002) discard;
 
-    vec3 color = brightnessToColor(brightness * 2.0) * uSunColor;
-    gl_FragColor = vec4(color, clamp(brightness, 0.0, 1.0));
+    vec3 discColor = brightnessToColor(discBright * uSunIntensity * 1.5) * uSunColor;
+    vec3 glowColor = brightnessToColor(glowBright * uSunIntensity * 2.5) * uSunColor;
+    vec3 color = discColor + glowColor;
+
+    gl_FragColor = vec4(color, clamp(totalBright, 0.0, 1.0));
   }
 `;
 
