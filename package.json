@@ -1,6 +1,6 @@
 {
   "name": "@geoql/maplibre-gl-starfield",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "A MapLibre GL JS custom layer for rendering a Three.js starfield skybox with galaxy panorama",
   "keywords": [
