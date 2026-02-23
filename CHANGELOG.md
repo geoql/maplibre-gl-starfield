@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.0...v0.1.1) (2026-02-23)
+
+
+### Features
+
+* **sun:** add fadeAltitude option, fix WebGL2 types, update coordinate docs ([1584854](https://github.com/geoql/maplibre-gl-starfield/commit/15848543abbd74f1b52c3f5413a4e7b18d343f1a))
+
+
+### Miscellaneous
+
+* **deps:** bump three, oxlint, oxfmt, maplibre-gl ([8a3dc53](https://github.com/geoql/maplibre-gl-starfield/commit/8a3dc53f69c5ad3cda293c20815e9a9f1d722df7))
+
 ## [0.1.0](https://github.com/geoql/maplibre-gl-starfield/compare/v0.0.2...v0.1.0) (2026-02-19)
 
 
