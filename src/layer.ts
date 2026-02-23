@@ -49,9 +49,19 @@ type MaplibreStarfieldLayerOptions = {
   galaxyBrightness?: number;
   /** Enable sun rendering (default: false) */
   sunEnabled?: boolean;
-  /** Sun azimuth in degrees from north, clockwise. 0=N, 90=E, 180=S, 270=W (default: 180) */
+  /**
+   * Sun azimuth in degrees. For globe projections this corresponds to the
+   * subsolar longitude (where solar noon is occurring). The mapping is:
+   * 0 = prime-meridian (+Z), 90 = 90 E (+X), 180 = antimeridian (-Z), 270 = 90 W (-X).
+   * (default: 180)
+   */
   sunAzimuth?: number;
-  /** Sun altitude in degrees above horizon. -90 to 90, 0=horizon, 90=zenith (default: 45) */
+  /**
+   * Sun altitude in degrees. For globe projections this corresponds to the
+   * solar declination (-23.44 to +23.44). The mapping is:
+   * 0 = equator, +90 = north-pole (+Y), -90 = south-pole (-Y).
+   * (default: 45)
+   */
   sunAltitude?: number;
   /** Sun visual disc size in pixels (default: 100) */
   sunSize?: number;
@@ -61,6 +71,13 @@ type MaplibreStarfieldLayerOptions = {
   sunIntensity?: number;
   /** Automatically fade stars and galaxy when the sun is above the horizon (default: true) */
   autoFadeStars?: boolean;
+  /**
+   * Override altitude used for the star/galaxy fade calculation.
+   * When using geocentric sun coordinates (subsolar longitude + declination),
+   * pass the observer's local sun altitude here so twilight fading is correct.
+   * If omitted, `sunAltitude` is used. (degrees, -90 to 90)
+   */
+  fadeAltitude?: number;
 };
 
 const GLSL_INCLUDES: Record<string, string> = {
@@ -93,10 +110,15 @@ const sunFragmentShader = resolveGlslIncludes(sunFragmentShaderRaw);
 const DEG2RAD = Math.PI / 180;
 
 /**
- * Convert geographic-style azimuth + altitude to a unit-sphere position.
+ * Convert spherical angles to a unit-sphere direction vector.
  *
- * Azimuth : 0 = north (+Z), 90 = east (+X), 180 = south (-Z), 270 = west (-X)
- * Altitude: 0 = horizon, +90 = zenith (+Y), -90 = nadir (-Y)
+ * In globe mode the angles correspond to geographic coordinates:
+ *   azimuth  = longitude:  0 = prime-meridian (+Z), 90 = 90 E (+X)
+ *   altitude = latitude:   0 = equator, +90 = north-pole (+Y)
+ *
+ * This matches MapLibre's globe coordinate system
+ * (see angularCoordinatesRadiansToVector in globe_utils.ts):
+ *   X = sin(lng) * cos(lat),  Y = sin(lat),  Z = cos(lng) * cos(lat)
  */
 function sunDirectionFromAngles(
   azimuthDeg: number,
@@ -106,9 +128,9 @@ function sunDirectionFromAngles(
   const alt = altitudeDeg * DEG2RAD;
   const cosAlt = Math.cos(alt);
   return [
-    cosAlt * Math.sin(az), // x  (east)
-    Math.sin(alt), // y  (up)
-    cosAlt * Math.cos(az), // z  (north)
+    cosAlt * Math.sin(az), // x  (-> +90 E / east)
+    Math.sin(alt), // y  (-> north pole / up)
+    cosAlt * Math.cos(az), // z  (-> prime meridian)
   ];
 }
 
@@ -163,6 +185,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
   private _sunColor: number;
   private _sunIntensity: number;
   private _autoFadeStars: boolean;
+  private _fadeAltitude: number | undefined;
 
   // Three.js internals
   private renderer: WebGLRenderer | null = null;
@@ -191,6 +214,7 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     this._sunColor = options.sunColor ?? 0xffeeaa;
     this._sunIntensity = options.sunIntensity ?? 1.5;
     this._autoFadeStars = options.autoFadeStars ?? true;
+    this._fadeAltitude = options.fadeAltitude;
   }
 
   // -----------------------------------------------------------------------
@@ -200,12 +224,19 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
   /**
    * Update the sun position and re-render.
    *
-   * @param azimuth  Degrees from north, clockwise (0-360)
-   * @param altitude Degrees above horizon (-90 to 90)
+   * For globe projections pass the subsolar longitude as `azimuth`
+   * and the solar declination as `altitude`.  Optionally pass the
+   * observer's local sun altitude as `fadeAltitude` so the twilight
+   * star-fade uses the correct value.
    */
-  setSunPosition(azimuth: number, altitude: number): void {
+  setSunPosition(
+    azimuth: number,
+    altitude: number,
+    fadeAltitude?: number,
+  ): void {
     this._sunAzimuth = azimuth;
     this._sunAltitude = altitude;
+    if (fadeAltitude !== undefined) this._fadeAltitude = fadeAltitude;
     this.applySunPosition();
     this.applyStarFade();
     this.map?.triggerRepaint();
@@ -247,19 +278,31 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /**
+   * Override the altitude used for star/galaxy fade calculation.
+   * Pass the observer's local sun altitude when using geocentric sun coords.
+   */
+  setFadeAltitude(altitude: number | undefined): void {
+    this._fadeAltitude = altitude;
+    this.applyStarFade();
+    this.map?.triggerRepaint();
+  }
+
   // -----------------------------------------------------------------------
   // CustomLayerInterface
   // -----------------------------------------------------------------------
 
-  onAdd(map: MaplibreMap, gl: WebGLRenderingContext): void {
+  onAdd(
+    map: MaplibreMap,
+    gl: WebGLRenderingContext | WebGL2RenderingContext,
+  ): void {
     this.map = map;
     this.scene = new Scene();
     this.camera = new Camera();
 
+    const fadeAlt = this._fadeAltitude ?? this._sunAltitude;
     const initialFade =
-      this._sunEnabled && this._autoFadeStars
-        ? computeStarFade(this._sunAltitude)
-        : 1.0;
+      this._sunEnabled && this._autoFadeStars ? computeStarFade(fadeAlt) : 1.0;
 
     // --- Galaxy skybox sphere (renders first, behind everything) ---------
     if (this.galaxyTextureUrl) {
@@ -353,7 +396,10 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
     this.renderer.autoClear = false;
   }
 
-  render(_gl: WebGLRenderingContext, options: CustomRenderMethodInput): void {
+  render(
+    _gl: WebGLRenderingContext | WebGL2RenderingContext,
+    options: CustomRenderMethodInput,
+  ): void {
     if (!this.renderer || !this.scene || !this.camera) return;
 
     const P = new Matrix4().fromArray(
@@ -470,7 +516,8 @@ class MaplibreStarfieldLayer implements CustomLayerInterface {
       this.setFadeUniforms(1.0);
       return;
     }
-    const fade = computeStarFade(this._sunAltitude);
+    const fadeAlt = this._fadeAltitude ?? this._sunAltitude;
+    const fade = computeStarFade(fadeAlt);
     this.setFadeUniforms(fade);
   }
 
