@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@geoql/maplibre-gl-starfield": "file:..",
-    "maplibre-gl": "^5.19.0",
+    "maplibre-gl": "^6.3.0",
     "three": "^0.183.1"
   },
   "devDependencies": {

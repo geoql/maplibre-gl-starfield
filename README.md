@@ -37,7 +37,7 @@ bunx jsr add @geoql/maplibre-gl-starfield
 ## Usage
 
 ```typescript
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { MaplibreStarfieldLayer } from '@geoql/maplibre-gl-starfield';
 import 'maplibre-gl/dist/maplibre-gl.css';
 

@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { MaplibreStarfieldLayer } from '@geoql/maplibre-gl-starfield';
 import './style.css';
 
