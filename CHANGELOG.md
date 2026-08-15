@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.1...v0.1.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* **example:** use namespace import for maplibre-gl v6 ([7a7699c](https://github.com/geoql/maplibre-gl-starfield/commit/7a7699c2ba7e929a687caeb773d533a1a25de710))
+
+
+### Miscellaneous
+
+* bump maplibre-gl-js package ([a6d7586](https://github.com/geoql/maplibre-gl-starfield/commit/a6d758644d618bb4270c7f232a2f36bb0ab86b0c))
+* update commit-msg husky hook ([991e9ef](https://github.com/geoql/maplibre-gl-starfield/commit/991e9efd9d0efcde5ceb71b36e767a8c96434c33))
+
 ## [0.1.1](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.0...v0.1.1) (2026-02-23)
 
 
