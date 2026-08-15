@@ -16,7 +16,7 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "paths": {
-      "@geoql/maplibre-gl-starfield": ["../dist"]
+      "@geoql/maplibre-gl-starfield": ["../src/index.ts"]
     }
   },
   "include": ["src"]

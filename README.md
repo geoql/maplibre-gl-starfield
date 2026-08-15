@@ -25,13 +25,10 @@ npm install @geoql/maplibre-gl-starfield maplibre-gl three
 pnpm add @geoql/maplibre-gl-starfield maplibre-gl three
 
 # yarn
-yarn add @geoql/maplibre-gl-starfield maplibre-gl three
-
-# bun
-bun add @geoql/maplibre-gl-starfield maplibre-gl three
+pnpm add @geoql/maplibre-gl-starfield maplibre-gl three
 
 # JSR
-bunx jsr add @geoql/maplibre-gl-starfield
+pnpm dlx jsr add @geoql/maplibre-gl-starfield
 ```
 
 ## Usage
@@ -148,10 +145,10 @@ export type { MaplibreStarfieldLayerOptions } from '@geoql/maplibre-gl-starfield
 4. Submit a PR
 
 ```bash
-bun install
-bun run build
-bun run lint
-bun run typecheck
+pnpm install
+pnpm run build
+pnpm run lint
+pnpm run typecheck
 ```
 
 ## License

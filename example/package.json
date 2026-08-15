@@ -4,18 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "vp dev",
+    "build": "vp check && vp build",
+    "preview": "vp preview"
   },
   "dependencies": {
-    "@geoql/maplibre-gl-starfield": "file:..",
+    "@geoql/maplibre-gl-starfield": "workspace:*",
     "maplibre-gl": "^6.3.0",
     "three": "^0.183.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vite-plus": "^0.2.9"
   }
 }
