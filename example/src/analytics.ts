@@ -24,7 +24,7 @@ declare global {
  * GA4 measurement ID. Empty until the GA4 property exists; while empty,
  * GA4 is not loaded and no GA4 events are sent.
  */
-export const GA_MEASUREMENT_ID: string = '';
+export const GA_MEASUREMENT_ID: string = 'G-RCGJ6JYEX8';
 
 export function initGoogleAnalytics(): void {
   if (!GA_MEASUREMENT_ID) return;
