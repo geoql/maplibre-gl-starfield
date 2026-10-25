@@ -1,95 +1,322 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
+/*
+ * Direction: Tech Utility (shared with nxui and v-maplibre).
+ * Geist + Geist Mono, OKLch tokens, sharp 6px radii, borders over shadows.
+ * The globe is always a night sky, so only the chrome follows the theme.
+ */
+
 :root {
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    sans-serif;
-  color-scheme: dark;
-  background-color: #000;
-  overflow: hidden;
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', monospace;
+
+  --space-night: oklch(0.14 0.02 270);
+  --sun: oklch(0.8 0.15 75);
+  --sun-soft: oklch(0.8 0.15 75 / 0.18);
+  --radius: 6px;
+  --gap: 12px;
 }
 
+:root[data-theme='light'] {
+  color-scheme: light;
+  --surface: oklch(0.97 0.006 260 / 0.92);
+  --surface-raised: oklch(0.93 0.008 260);
+  --ink: oklch(0.22 0.02 265);
+  --ink-muted: oklch(0.45 0.02 265);
+  --line: oklch(0.22 0.02 265 / 0.14);
+  --accent: oklch(0.55 0.15 60);
+  --accent-soft: oklch(0.55 0.15 60 / 0.14);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface: oklch(0.18 0.02 268 / 0.82);
+  --surface-raised: oklch(0.25 0.02 268);
+  --ink: oklch(0.95 0.008 260);
+  --ink-muted: oklch(0.7 0.015 260);
+  --line: oklch(0.95 0.008 260 / 0.12);
+  --accent: var(--sun);
+  --accent-soft: var(--sun-soft);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--space-night);
+  font-family: var(--font-sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 canvas {
-  outline: none !important;
+  outline: none;
 }
 
 #map {
-  width: 100vw;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
 }
 
-#controls {
+/* ------------------------------------------------------------------ */
+/* Floating surfaces                                                  */
+/* ------------------------------------------------------------------ */
+
+.brand,
+.panel {
   position: absolute;
-  top: 12px;
-  left: 12px;
   z-index: 10;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  left: var(--gap);
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.brand {
+  top: var(--gap);
+  width: min(380px, calc(100vw - 2 * var(--gap) - 52px));
   padding: 14px 16px;
-  color: #e0e0e0;
+}
+
+.brand-kicker {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.brand-name {
+  margin: 2px 0 6px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.brand-lede {
+  margin: 0 0 12px;
   font-size: 13px;
-  min-width: 200px;
+  font-weight: 350;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.install {
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.install code {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.links a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+
+.links a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.links .btn {
+  margin-left: auto;
+}
+
+.btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sun panel                                                          */
+/* ------------------------------------------------------------------ */
+
+.panel {
+  bottom: 36px;
+  width: min(288px, calc(100vw - 2 * var(--gap)));
+  padding: 12px 16px 14px;
+  font-size: 13px;
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+/* The one loud element: the sun position, set large in mono. */
+.readout {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 40px;
+  font-weight: 250;
+  white-space: nowrap;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.readout .unit {
+  font-size: 0.55em;
+  vertical-align: 0.6em;
+  margin-left: 1px;
+}
+
+.readout-sep {
+  color: var(--ink-muted);
+  font-weight: 200;
+  margin: 0 2px;
+}
+
+.readout-label {
+  margin: 4px 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.check {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  margin-bottom: 10px;
 }
 
-#controls h3 {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-}
-
-#controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-#controls input[type='range'] {
-  width: 100%;
-  accent-color: #ffbb33;
-}
-
-#controls input[type='checkbox'] {
-  accent-color: #ffbb33;
-  margin-right: 6px;
+.check input,
+.range input {
+  accent-color: var(--accent);
 }
 
 .presets {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
+  margin-bottom: 12px;
 }
 
 .presets button {
-  flex: 1;
-  padding: 4px 0;
-  font-size: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ccc;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 0;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
 .presets button:hover {
-  background: rgba(255, 187, 51, 0.2);
-  border-color: rgba(255, 187, 51, 0.4);
-  color: #fff;
+  color: var(--ink);
+  border-color: var(--accent);
 }
 
-.presets button.active {
-  background: rgba(255, 187, 51, 0.25);
-  border-color: #ffbb33;
-  color: #ffbb33;
+.presets button[aria-pressed='true'] {
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.range {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--ink-muted);
+}
+
+.range output {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+.range input {
+  width: 100%;
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Small screens                                                      */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .brand {
+    padding: 12px;
+  }
+
+  .brand-lede {
+    display: none;
+  }
+
+  .panel {
+    bottom: 32px;
+  }
+
+  .readout {
+    font-size: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presets button {
+    transition: none;
+  }
 }

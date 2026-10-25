@@ -2,35 +2,163 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MapLibre GL Starfield Example</title>
+    <title>
+      maplibre-gl-starfield: a Three.js starfield for MapLibre globes
+    </title>
+    <meta
+      name="description"
+      content="A MapLibre GL JS custom layer that draws a Three.js starfield, a galaxy panorama and a sun behind globe-projection maps."
+    />
+    <link rel="canonical" href="https://maplibre-gl-starfield.geoql.in/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content="maplibre-gl-starfield" />
+    <meta
+      property="og:description"
+      content="A Three.js starfield, galaxy and sun behind MapLibre globe maps."
+    />
+    <meta property="og:url" content="https://maplibre-gl-starfield.geoql.in/" />
+    <meta name="theme-color" content="#0b0d14" />
+    <script>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('starfield-theme');
+        } catch (e) {}
+        var dark =
+          stored === 'dark' ||
+          (stored !== 'light' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+    <script
+      async
+      src="https://analytics.geoql.in/js/pa-vdk4S6qjfp8vSwdZ-tss0.js"
+    ></script>
+    <script>
+      ((window.plausible =
+        window.plausible ||
+        function () {
+          (plausible.q = plausible.q || []).push(arguments);
+        }),
+        (plausible.init =
+          plausible.init ||
+          function (i) {
+            plausible.o = i || {};
+          }));
+      plausible.init();
+    </script>
+    <script>
+      window.op =
+        window.op ||
+        (function () {
+          var n = [];
+          return new Proxy(
+            function () {
+              arguments.length && n.push([].slice.call(arguments));
+            },
+            {
+              get: function (t, r) {
+                return 'q' === r
+                  ? n
+                  : function () {
+                      n.push([r].concat([].slice.call(arguments)));
+                    };
+              },
+              has: function (t, r) {
+                return 'q' === r;
+              },
+            },
+          );
+        })();
+      window.op('init', {
+        apiUrl: 'https://events.geoql.in/api',
+        clientId: '4bb9c6fa-3651-403a-8f17-df57f0b18bc6',
+        trackScreenViews: true,
+        trackOutgoingLinks: true,
+        trackAttributes: true,
+      });
+    </script>
+    <script src="https://openpanel.dev/op1.js" defer async></script>
   </head>
   <body>
-    <div id="map"></div>
-    <div id="controls">
-      <h3>Sun Controls</h3>
-      <label><input type="checkbox" id="sun-toggle" checked /> Sun</label>
-      <div class="presets">
-        <button data-preset="dawn">Dawn</button>
-        <button data-preset="day">Day</button>
-        <button data-preset="dusk">Dusk</button>
-        <button data-preset="night">Night</button>
+    <div id="map" aria-label="Globe map with a starfield sky"></div>
+
+    <header class="brand">
+      <p class="brand-kicker">@geoql</p>
+      <h1 class="brand-name">maplibre-gl-starfield</h1>
+      <p class="brand-lede">
+        A Three.js starfield, galaxy panorama and sun behind MapLibre globes.
+      </p>
+      <div class="install">
+        <code id="install-cmd"
+          >pnpm add @geoql/maplibre-gl-starfield maplibre-gl three</code
+        >
+        <button type="button" id="copy-install" class="btn">Copy</button>
       </div>
-      <label
-        >Azimuth <span id="az-val">120</span>&deg;
-        <input type="range" id="azimuth" min="0" max="360" value="120" />
+      <nav class="links" aria-label="Project links">
+        <a
+          href="https://github.com/geoql/maplibre-gl-starfield"
+          data-outbound="github"
+          rel="noopener"
+          >GitHub</a
+        >
+        <a
+          href="https://www.npmjs.com/package/@geoql/maplibre-gl-starfield"
+          data-outbound="npm"
+          rel="noopener"
+          >npm</a
+        >
+        <a
+          href="https://jsr.io/@geoql/maplibre-gl-starfield"
+          data-outbound="jsr"
+          rel="noopener"
+          >JSR</a
+        >
+        <button
+          type="button"
+          id="theme-toggle"
+          class="btn"
+          aria-label="Switch colour theme"
+        >
+          Theme
+        </button>
+      </nav>
+    </header>
+
+    <details id="controls" class="panel" open>
+      <summary class="panel-title">Sun</summary>
+      <div class="readout" aria-live="polite">
+        <span id="az-val">0</span><span class="unit">°</span>
+        <span class="readout-sep">/</span>
+        <span id="alt-val">-30</span><span class="unit">°</span>
+      </div>
+      <p class="readout-label">azimuth / altitude</p>
+
+      <label class="check">
+        <input type="checkbox" id="sun-toggle" checked /> Show sun
       </label>
-      <label
-        >Altitude <span id="alt-val">25</span>&deg;
-        <input type="range" id="altitude" min="-90" max="90" value="25" />
+      <div class="presets" role="group" aria-label="Sun presets">
+        <button type="button" data-preset="dawn">Dawn</button>
+        <button type="button" data-preset="day">Day</button>
+        <button type="button" data-preset="dusk">Dusk</button>
+        <button type="button" data-preset="night">Night</button>
+      </div>
+      <label class="range">
+        <span>Azimuth</span>
+        <input type="range" id="azimuth" min="0" max="360" value="0" />
       </label>
-      <label
-        >Size <span id="size-val">100</span>px
+      <label class="range">
+        <span>Altitude</span>
+        <input type="range" id="altitude" min="-90" max="90" value="-30" />
+      </label>
+      <label class="range">
+        <span>Size <output id="size-val">100</output> px</span>
         <input type="range" id="sun-size" min="20" max="300" value="100" />
       </label>
-      <label
-        >Intensity <span id="int-val">1.5</span>
+      <label class="range">
+        <span>Intensity <output id="int-val">1.5</output></span>
         <input
           type="range"
           id="intensity"
@@ -40,7 +168,8 @@
           step="1"
         />
       </label>
-    </div>
+    </details>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

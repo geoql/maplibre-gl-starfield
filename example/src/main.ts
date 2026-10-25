@@ -1,6 +1,101 @@
 import * as maplibregl from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { MaplibreStarfieldLayer } from '@geoql/maplibre-gl-starfield';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 import './style.css';
+import { initGoogleAnalytics, track } from './analytics';
+
+initGoogleAnalytics();
+
+// maplibre-gl v6 cannot find its worker inside a bundle; Vite emits it here.
+maplibregl.setWorkerUrl(workerUrl);
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function byId<T extends HTMLElement>(id: string): T {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Missing #${id}`);
+  return el as T;
+}
+
+// ---------------------------------------------------------------------------
+// Page chrome: theme, install copy, outbound links
+// ---------------------------------------------------------------------------
+
+type Theme = 'light' | 'dark';
+const THEME_KEY = 'starfield-theme';
+
+function currentTheme(): Theme {
+  return document.documentElement.dataset['theme'] === 'dark'
+    ? 'dark'
+    : 'light';
+}
+
+const $themeToggle = byId<HTMLButtonElement>('theme-toggle');
+
+function renderThemeToggle(theme: Theme) {
+  const next = theme === 'dark' ? 'light' : 'dark';
+  $themeToggle.textContent = next === 'dark' ? 'Dark' : 'Light';
+  $themeToggle.setAttribute('aria-label', `Switch to ${next} theme`);
+}
+
+renderThemeToggle(currentTheme());
+
+$themeToggle.addEventListener('click', () => {
+  const next: Theme = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset['theme'] = next;
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch {
+    // Storage can be blocked (private mode); the theme still applies.
+  }
+  renderThemeToggle(next);
+  track('Theme Toggle', { theme: next });
+});
+
+const $copy = byId<HTMLButtonElement>('copy-install');
+const $installCmd = byId<HTMLElement>('install-cmd');
+
+$copy.addEventListener('click', () => {
+  const text = $installCmd.textContent?.trim() ?? '';
+  navigator.clipboard.writeText(text).then(
+    () => {
+      $copy.textContent = 'Copied';
+      track('Install Copy', { manager: 'pnpm' });
+      window.setTimeout(() => {
+        $copy.textContent = 'Copy';
+      }, 1600);
+    },
+    () => {
+      $copy.textContent = 'Press ⌘C';
+    },
+  );
+});
+
+document
+  .querySelectorAll<HTMLAnchorElement>('a[data-outbound]')
+  .forEach((link) => {
+    link.addEventListener('click', () => {
+      track('Outbound Link', {
+        target: link.dataset['outbound'] ?? 'unknown',
+        url: link.href,
+      });
+    });
+  });
+
+// Start with the panel collapsed on small screens so the globe is visible.
+const $controls = byId<HTMLDetailsElement>('controls');
+if (window.matchMedia('(max-width: 640px)').matches) {
+  $controls.open = false;
+}
+// Track the user's clicks only; the `toggle` event also fires for the
+// programmatic collapse above.
+$controls.querySelector('summary')?.addEventListener('click', () => {
+  track('Panel Toggle', { open: !$controls.open });
+});
 
 // ---------------------------------------------------------------------------
 // Presets
@@ -70,15 +165,21 @@ const map = new maplibregl.Map({
   maxPitch: 85,
 });
 
+map.addControl(
+  new maplibregl.NavigationControl({ visualizePitch: true }),
+  'top-right',
+);
+
 map.on('load', () => {
   const starfield = new MaplibreStarfieldLayer({
-    galaxyTextureUrl: import.meta.env.BASE_URL + 'milkyway.jpg',
+    galaxyTextureUrl: `${import.meta.env.BASE_URL}milkyway.jpg`,
     galaxyBrightness: 0.35,
     starCount: 4000,
     starSize: 2.0,
     sunEnabled: true,
-    sunAzimuth: 120,
-    sunAltitude: 25,
+    // Open on the Night preset so the stars and galaxy show on arrival.
+    sunAzimuth: PRESETS['night']?.azimuth ?? 0,
+    sunAltitude: PRESETS['night']?.altitude ?? -30,
     sunSize: 100,
     sunIntensity: 1.5,
     autoFadeStars: true,
@@ -91,25 +192,20 @@ map.on('load', () => {
     map.addLayer(starfield);
   }
 
-  map.addControl(
-    new maplibregl.NavigationControl({ visualizePitch: true }),
-    'top-right',
-  );
-
   // -----------------------------------------------------------------------
-  // DOM Controls
+  // Sun controls
   // -----------------------------------------------------------------------
 
-  const $toggle = document.getElementById('sun-toggle') as HTMLInputElement;
-  const $azimuth = document.getElementById('azimuth') as HTMLInputElement;
-  const $altitude = document.getElementById('altitude') as HTMLInputElement;
-  const $size = document.getElementById('sun-size') as HTMLInputElement;
-  const $intensity = document.getElementById('intensity') as HTMLInputElement;
+  const $toggle = byId<HTMLInputElement>('sun-toggle');
+  const $azimuth = byId<HTMLInputElement>('azimuth');
+  const $altitude = byId<HTMLInputElement>('altitude');
+  const $size = byId<HTMLInputElement>('sun-size');
+  const $intensity = byId<HTMLInputElement>('intensity');
 
-  const $azVal = document.getElementById('az-val') as HTMLSpanElement;
-  const $altVal = document.getElementById('alt-val') as HTMLSpanElement;
-  const $sizeVal = document.getElementById('size-val') as HTMLSpanElement;
-  const $intVal = document.getElementById('int-val') as HTMLSpanElement;
+  const $azVal = byId<HTMLSpanElement>('az-val');
+  const $altVal = byId<HTMLSpanElement>('alt-val');
+  const $sizeVal = byId<HTMLOutputElement>('size-val');
+  const $intVal = byId<HTMLOutputElement>('int-val');
 
   const presetButtons =
     document.querySelectorAll<HTMLButtonElement>('.presets button');
@@ -122,15 +218,14 @@ map.on('load', () => {
   }
 
   function clearActivePreset() {
-    presetButtons.forEach((btn) => btn.classList.remove('active'));
+    presetButtons.forEach((btn) => btn.setAttribute('aria-pressed', 'false'));
   }
 
-  // Sun toggle
   $toggle.addEventListener('change', () => {
     starfield.setSunEnabled($toggle.checked);
+    track('Sun Toggle', { enabled: $toggle.checked });
   });
 
-  // Sliders
   $azimuth.addEventListener('input', () => {
     const az = Number($azimuth.value);
     $azVal.textContent = String(az);
@@ -152,13 +247,24 @@ map.on('load', () => {
   });
 
   $intensity.addEventListener('input', () => {
-    const raw = Number($intensity.value);
-    const val = raw / 10;
+    const val = Number($intensity.value) / 10;
     $intVal.textContent = val.toFixed(1);
     starfield.setSunIntensity(val);
   });
 
-  // Presets
+  // One event per finished drag, not one per pixel.
+  const sliders: Array<[HTMLInputElement, string]> = [
+    [$azimuth, 'azimuth'],
+    [$altitude, 'altitude'],
+    [$size, 'size'],
+    [$intensity, 'intensity'],
+  ];
+  for (const [input, control] of sliders) {
+    input.addEventListener('change', () => {
+      track('Sun Adjust', { control, value: Number(input.value) });
+    });
+  }
+
   function applyPreset(name: string) {
     const preset = PRESETS[name];
     if (!preset) return;
@@ -172,10 +278,14 @@ map.on('load', () => {
     });
 
     presetButtons.forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset['preset'] === name);
+      btn.setAttribute('aria-pressed', String(btn.dataset['preset'] === name));
     });
+    track('Sun Preset', { preset: name });
   }
 
+  presetButtons.forEach((btn) => {
+    btn.setAttribute('aria-pressed', String(btn.dataset['preset'] === 'night'));
+  });
   presetButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const name = btn.dataset['preset'];

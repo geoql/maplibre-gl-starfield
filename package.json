@@ -14,7 +14,7 @@
     "three",
     "threejs"
   ],
-  "homepage": "https://github.com/geoql/maplibre-gl-starfield#readme",
+  "homepage": "https://maplibre-gl-starfield.geoql.in",
   "bugs": {
     "url": "https://github.com/geoql/maplibre-gl-starfield/issues"
   },
@@ -53,28 +53,37 @@
     "format:fix": "vp fmt --write",
     "typecheck": "vp check --no-fmt --no-lint",
     "publish:npm": "npm publish --access public",
-    "publish:jsr": "pnpm dlx jsr publish"
+    "publish:jsr": "pnpm dlx jsr publish",
+    "dev:demo": "pnpm --filter ./example dev",
+    "build:demo": "pnpm run build && pnpm --filter ./example build",
+    "deploy:demo": "pnpm run build:demo && pnpm --filter ./example deploy"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@commitlint/types": "^21.2.0",
-    "@types/node": "^26.2.0",
-    "@types/three": "^0.183.1",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@commitlint/types": "^21.2.3",
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.186.0",
     "husky": "^9.1.7",
     "is-ci": "^4.1.0",
-    "lint-staged": "^17.3.0",
-    "maplibre-gl": "^6.3.0",
-    "three": "^0.183.1",
+    "lint-staged": "^17.6.0",
+    "maplibre-gl": "^6.15.0",
+    "three": "^0.186.1",
     "typescript": "^7.0.2",
-    "vite-plus": "^0.2.9"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "maplibre-gl": ">=3.0.0",
     "three": ">=0.135.0"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26.x"
+    }
+  },
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
 }

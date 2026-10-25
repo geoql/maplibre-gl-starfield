@@ -11,7 +11,7 @@ Three.js starfield skybox custom layer for [MapLibre GL JS](https://maplibre.org
 [![tsdown](https://img.shields.io/badge/bundler-tsdown-3178c6)](https://tsdown.dev/)
 [![typescript](https://img.shields.io/npm/dependency-version/@geoql/maplibre-gl-starfield/dev/typescript?logo=TypeScript)](https://www.typescriptlang.org/)
 
-> [**Live Demo**](https://geoql.github.io/maplibre-gl-starfield/)
+> [**Live Demo**](https://maplibre-gl-starfield.geoql.in)
 
 Renders an optional equirectangular galaxy/milky-way panorama texture with configurable brightness, plus thousands of individual point stars with additive blending. Perfect for globe-projection maps that need a space-like background — earthquake visualizations, satellite trackers, flight paths, and more.
 
@@ -25,7 +25,7 @@ npm install @geoql/maplibre-gl-starfield maplibre-gl three
 pnpm add @geoql/maplibre-gl-starfield maplibre-gl three
 
 # yarn
-pnpm add @geoql/maplibre-gl-starfield maplibre-gl three
+yarn add @geoql/maplibre-gl-starfield maplibre-gl three
 
 # JSR
 pnpm dlx jsr add @geoql/maplibre-gl-starfield
@@ -149,6 +149,16 @@ pnpm install
 pnpm run build
 pnpm run lint
 pnpm run typecheck
+```
+
+The demo lives in `example/` and runs on a Cloudflare Worker at
+[maplibre-gl-starfield.geoql.in](https://maplibre-gl-starfield.geoql.in). Use Node 26
+or later.
+
+```bash
+pnpm run dev:demo     # local dev server
+pnpm run build:demo   # build the library, then the demo
+pnpm run deploy:demo  # build and deploy the Worker (needs wrangler login)
 ```
 
 ## License
