@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.2...v0.1.3) (2026-10-25)
+
+
+### Features
+
+* **demo:** enable ga4 ([#24](https://github.com/geoql/maplibre-gl-starfield/issues/24)) ([3ab88b2](https://github.com/geoql/maplibre-gl-starfield/commit/3ab88b2ac34be50f97b17f4596f1a83068e6dd3f))
+
+
+### Miscellaneous
+
+* move the demo to cloudflare workers, pnpm and latest deps ([#22](https://github.com/geoql/maplibre-gl-starfield/issues/22)) ([5b8b9dd](https://github.com/geoql/maplibre-gl-starfield/commit/5b8b9dd11ec372cf4194138d9fecbba29226fb60))
+
 ## [0.1.2](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.1...v0.1.2) (2026-08-15)
 
 
