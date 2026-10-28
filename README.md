@@ -11,7 +11,7 @@ Three.js starfield skybox custom layer for [MapLibre GL JS](https://maplibre.org
 [![tsdown](https://img.shields.io/badge/bundler-tsdown-3178c6)](https://tsdown.dev/)
 [![typescript](https://img.shields.io/npm/dependency-version/@geoql/maplibre-gl-starfield/dev/typescript?logo=TypeScript)](https://www.typescriptlang.org/)
 
-> [**Live Demo**](https://maplibre-gl-starfield.geoql.in)
+**[Live demo](https://maplibre-gl-starfield.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield)** · [npm](https://www.npmjs.com/package/@geoql/maplibre-gl-starfield) · [JSR](https://jsr.io/@geoql/maplibre-gl-starfield)
 
 Renders an optional equirectangular galaxy/milky-way panorama texture with configurable brightness, plus thousands of individual point stars with additive blending. Perfect for globe-projection maps that need a space-like background — earthquake visualizations, satellite trackers, flight paths, and more.
 
@@ -160,6 +160,17 @@ pnpm run dev:demo     # local dev server
 pnpm run build:demo   # build the library, then the demo
 pnpm run deploy:demo  # build and deploy the Worker (needs wrangler login)
 ```
+
+## More from the author
+
+- [maplibre-gl-snow](https://maplibre-gl-snow.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — WebGPU snow particle layer
+- [maplibre-gl-wind](https://maplibre-gl-wind.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — wind particle animation layer
+- [maplibre-gl-compare](https://maplibre-gl-compare.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — swipe-style map comparison control
+- [maplibre-gl-inspect](https://maplibre-gl-inspect.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — inspect vector tile features and their properties
+- [v-maplibre](https://v-maplibre.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — 50+ Vue 3 components for MapLibre GL
+- [mapcn-vue](https://mapcn-vue.geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) — shadcn-vue map components you copy into your app
+
+See every project at [vinayakkulkarni.dev/projects](https://vinayakkulkarni.dev/projects?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield) and [geoql.in](https://geoql.in/?utm_source=github&utm_medium=readme&utm_campaign=maplibre-gl-starfield).
 
 ## License
 
