@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.3...v0.1.4) (2026-10-28)
+
+
+### Documentation
+
+* link live demo and related projects ([#25](https://github.com/geoql/maplibre-gl-starfield/issues/25)) ([f8a1882](https://github.com/geoql/maplibre-gl-starfield/commit/f8a1882a08205a4b8c8cb56f78eda84574ec0925))
+
 ## [0.1.3](https://github.com/geoql/maplibre-gl-starfield/compare/v0.1.2...v0.1.3) (2026-10-25)
 
 
